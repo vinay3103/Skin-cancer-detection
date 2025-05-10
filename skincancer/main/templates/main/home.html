@@ -1,0 +1,226 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Skin Cancer Detection</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe, #f3e8ff);
+        }
+        .hero {
+            position: relative;
+            height: 60vh;
+            width: 80vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(135deg, #3b82f6, #ec4899);
+            color: white;
+            border-radius: 15px;
+            margin: 20px auto;
+            max-width: 800px;
+            overflow: hidden;
+            animation: zoomIn 1s ease-out;
+        }
+        .hero h1 {
+            font-size: 36px;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            margin: 0;
+        }
+        .hero p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        .cta-button {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+        .cta-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+            animation: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.3;
+            z-index: -1;
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .hero, .cta-button {
+                animation: none;
+                transition: none;
+            }
+        }
+    </style>
+</head>
+<body class="page-transition">
+    <div class="loader" id="loader">
+        <style>
+            .loader {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(255, 255, 255, 0.9);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                opacity: 0;
+                transition: opacity 0.5s ease;
+            }
+            .loader.active {
+                opacity: 1;
+            }
+            .loader::after {
+                content: '';
+                width: 40px;
+                height: 40px;
+                border: 5px solid #3b82f6;
+                border-top: 5px solid transparent;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    </div>
+
+    <nav class="navbar">
+        <div class="navbar-left">
+            <a href="{% url 'home' %}">Home</a>
+            <a href="{% url 'predict' %}">Check Disease</a>
+            <a href="{% url 'diseases_info' %}">Diseases Info</a>
+        </div>
+        <div class="navbar-right">
+            {% if user.is_authenticated %}
+                <form method="POST" action="{% url 'logout' %}" class="logout-form">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-link">Logout</button>
+                </form>
+            {% else %}
+                <a href="{% url 'signup' %}" class="nav-link">Signup</a>
+                <a href="{% url 'login' %}" class="nav-link">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="hero">
+            <canvas id="three-canvas"></canvas>
+            <h1>Welcome to Skin Cancer Detection</h1>
+            <p>Upload a skin image to detect potential diseases.</p>
+            <a href="{% url 'predict' %}" class="cta-button">Get Started</a>
+        </div>
+    </div>
+
+    <footer class="footer">
+        © 2025 Skin Cancer Detection | Made with ❤️
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Loader and page transition
+            const loader = document.getElementById('loader');
+            loader.classList.add('active');
+            setTimeout(() => {
+                loader.classList.remove('active');
+            }, 500);
+
+            document.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const href = link.getAttribute('href');
+                    document.body.classList.add('page-transition-exit');
+                    loader.classList.add('active');
+                    setTimeout(() => {
+                        window.location.href = href;
+                    }, 500);
+                });
+            });
+
+            // Three.js scene
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('three-canvas'), alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            const geometry = new THREE.SphereGeometry(5, 32, 32);
+            const material = new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true });
+            const sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+
+            camera.position.z = 10;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                sphere.rotation.x += 0.01;
+                sphere.rotation.y += 0.01;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // Resize handler
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Page transition animation
+            document.body.style.transition = 'transform 0.5s ease';
+            document.body.classList.add('page-transition-enter');
+            setTimeout(() => {
+                document.body.classList.remove('page-transition-enter');
+            }, 500);
+        });
+    </script>
+    <style>
+        .page-transition-enter {
+            transform: scale(0.95);
+            opacity: 0;
+        }
+        .page-transition-exit {
+            transform: scale(1.05);
+            opacity: 0;
+        }
+        body {
+            transition: transform 0.5s ease, opacity 0.5s ease;
+        }
+    </style>
+</body>
+</html>

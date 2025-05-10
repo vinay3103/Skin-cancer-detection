@@ -1,0 +1,412 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Diseases Info - Skin Cancer Detection</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.2/vanilla-tilt.min.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe, #f3e8ff);
+        }
+        .disease-carousel {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin: 20px auto;
+            overflow: visible;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(200,200,255,0.2));
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px 60px;
+        }
+        .disease-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            margin: 0 10px;
+            display: none;
+            opacity: 0;
+            transform: perspective(1000px) translateX(100%) rotateY(10deg);
+            transition: transform 0.6s ease, opacity 0.6s ease;
+        }
+        .disease-card.active {
+            display: block;
+            opacity: 1;
+            transform: perspective(1000px) translateX(0) rotateY(0deg);
+            animation: fadeIn 1s ease-in;
+        }
+        .disease-card.slide-left {
+            transform: perspective(1000px) translateX(-100%) rotateY(-10deg);
+            opacity: 0;
+        }
+        .disease-card:hover {
+            transform: perspective(1000px) translateY(-5px) scale(1.02);
+        }
+        .disease-card h3 {
+            color: #1f2937;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 15px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .disease-card p {
+            color: #4b5563;
+            line-height: 1.6;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .disease-card strong {
+            color: #1f2937;
+            font-weight: 600;
+        }
+        .arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 56px;
+            height: 56px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: bounce 1.5s infinite;
+            z-index: 1000;
+        }
+        .arrow:hover {
+            background: #2563eb;
+            transform: translateY(-50%) scale(1.2);
+            animation: none;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+        .arrow.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            animation: none;
+        }
+        .arrow-left {
+            left: 10px;
+        }
+        .arrow-right {
+            right: 10px;
+        }
+        .arrow svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+            stroke: white;
+            stroke-width: 1;
+        }
+        .carousel-dots {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .dot {
+            width: 12px;
+            height: 12px;
+            background: #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .dot.active {
+            background: #3b82f6;
+            transform: scale(1.3);
+            box-shadow: 0 0 10px #3b82f6;
+        }
+        .dot:hover {
+            transform: scale(1.3);
+            background: #2563eb;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: perspective(1000px) translateY(20px) rotateY(10deg); }
+            to { opacity: 1; transform: perspective(1000px) translateY(0) rotateY(0deg); }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-50%) scale(1); }
+            50% { transform: translateY(-50%) scale(1.15); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .disease-card, .arrow, .dot {
+                transition: none;
+                animation: none;
+            }
+        }
+    </style>
+</head>
+<body class="page-transition">
+    <div class="loader" id="loader">
+        <style>
+            .loader {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(255, 255, 255, 0.9);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                opacity: 0;
+                transition: opacity 0.5s ease;
+            }
+            .loader.active {
+                opacity: 1;
+            }
+            .loader::after {
+                content: '';
+                width: 40px;
+                height: 40px;
+                border: 5px solid #3b82f6;
+                border-top: 5px solid transparent;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    </div>
+
+    <nav class="navbar">
+        <div class="navbar-left">
+            <a href="{% url 'home' %}">Home</a>
+            <a href="{% url 'predict' %}">Check Disease</a>
+            <a href="{% url 'diseases_info' %}">Diseases Info</a>
+        </div>
+        <div class="navbar-right">
+            {% if user.is_authenticated %}
+                <form method="POST" action="{% url 'logout' %}" class="logout-form">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-link">Logout</button>
+                </form>
+            {% else %}
+                <a href="{% url 'signup' %}" class="nav-link">Signup</a>
+                <a href="{% url 'login' %}" class="nav-link">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="content">
+        <h2 style="text-align: center; color: #1f2937; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Skin Diseases Information</h2>
+
+        <div class="disease-carousel">
+            <div class="arrow arrow-left disabled" id="arrow-left">
+                <svg viewBox="0 0 24 24">
+                    <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/>
+                </svg>
+            </div>
+            <div class="arrow arrow-right" id="arrow-right">
+                <svg viewBox="0 0 24 24">
+                    <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/>
+                </svg>
+            </div>
+            <div class="disease-card active" data-tilt data-tilt-max="15" data-tilt-speed="400" data-tilt-perspective="1000">
+                <h3>Pigmented Benign Keratosis</h3>
+                <p><strong>Description:</strong> Non-cancerous skin growths, often appearing as warty, waxy, or stuck-on patches, commonly seen in older adults.</p>
+                <p><strong>Causes:</strong> Aging, sun exposure, or genetic predisposition.</p>
+                <p><strong>Symptoms:</strong> Brown, black, or tan growths with a rough, warty, or waxy surface; may be itchy or scaly; sizes range from small to several centimeters.</p>
+                <p><strong>Risk Factors:</strong> Age over 40, prolonged sun exposure, fair skin, family history of skin growths.</p>
+                <p><strong>Prevention:</strong> Use sunscreen (SPF 30+), wear protective clothing, avoid excessive sun exposure, and monitor skin changes.</p>
+                <p><strong>Action:</strong> Generally harmless; consult a dermatologist for cryotherapy, laser removal, or curettage if irritated, cosmetically undesirable, or suspicious for malignancy.</p>
+            </div>
+            <div class="disease-card" data-tilt data-tilt-max="15" data-tilt-speed="400" data-tilt-perspective="1000">
+                <h3>Melanoma</h3>
+                <p><strong>Description:</strong> A highly aggressive skin cancer originating from melanocytes, responsible for pigment production, often linked to UV exposure.</p>
+                <p><strong>Causes:</strong> UV radiation from sun or tanning beds, genetic mutations (e.g., BRAF gene), or immune suppression.</p>
+                <p><strong>Symptoms:</strong> Asymmetrical moles, irregular borders, multiple colors (brown, black, red, white, blue), diameter >6mm, evolving size/shape (ABCDE criteria); may itch or bleed.</p>
+                <p><strong>Risk Factors:</strong> Fair skin, history of sunburns, family history of melanoma, numerous or atypical moles, weakened immune system.</p>
+                <p><strong>Prevention:</strong> Apply broad-spectrum sunscreen, avoid tanning beds, perform regular skin self-exams, and seek annual dermatologist checkups.</p>
+                <p><strong>Action:</strong> Immediate dermatologist evaluation for biopsy; treatment may include surgical excision, immunotherapy, or targeted therapy for advanced cases.</p>
+            </div>
+            <div class="disease-card" data-tilt data-tilt-max="15" data-tilt-speed="400" data-tilt-perspective="1000">
+                <h3>Vascular Lesion</h3>
+                <p><strong>Description:</strong> Benign growths involving blood vessels, such as cherry angiomas, hemangiomas, or pyogenic granulomas.</p>
+                <p><strong>Causes:</strong> Genetic factors, hormonal changes, or minor skin trauma; often idiopathic.</p>
+                <p><strong>Symptoms:</strong> Bright red, purple, or blue spots or bumps; may be flat or raised; can grow or bleed if irritated.</p>
+                <p><strong>Risk Factors:</strong> Aging (cherry angiomas common after 30), pregnancy, liver disease, or certain medications.</p>
+                <p><strong>Prevention:</strong> Avoid trauma to skin, monitor for rapid growth, and maintain overall skin health.</p>
+                <p><strong>Action:</strong> Typically harmless; options include laser therapy, electrocautery, or surgical removal for cosmetic reasons or if bleeding occurs.</p>
+            </div>
+            <div class="disease-card" data-tilt data-tilt-max="15" data-tilt-speed="400" data-tilt-perspective="1000">
+                <h3>Actinic Keratosis</h3>
+                <p><strong>Description:</strong> Precancerous lesions caused by chronic sun exposure, with potential to progress to squamous cell carcinoma.</p>
+                <p><strong>Causes:</strong> Cumulative UV damage to skin cells, particularly in sun-exposed areas.</p>
+                <p><strong>Symptoms:</strong> Rough, scaly, or crusty patches; colors vary (red, brown, or skin-toned); may itch, burn, or feel tender; often <1cm.</p>
+                <p><strong>Risk Factors:</strong> Fair skin, age over 40, history of sunburns, outdoor occupations, or living in sunny climates.</p>
+                <p><strong>Prevention:</strong> Use sunscreen daily, wear hats and long sleeves, avoid midday sun, and schedule regular skin checks.</p>
+                <p><strong>Action:</strong> Dermatologist evaluation for biopsy; treatments include cryotherapy, topical 5-fluorouracil, photodynamic therapy, or chemical peels.</p>
+            </div>
+            <div class="disease-card" data-tilt data-tilt-max="15" data-tilt-speed="400" data-tilt-perspective="1000">
+                <h3>Squamous Cell Carcinoma</h3>
+                <p><strong>Description:</strong> Cancer of squamous cells in the skin’s outer layer, often sun-induced, with potential to metastasize if untreated.</p>
+                <p><strong>Causes:</strong> UV exposure, chronic skin injury, HPV infection, or chemical exposure (e.g., arsenic).</p>
+                <p><strong>Symptoms:</strong> Persistent scaly red patches, open sores, thickened or wart-like growths; may bleed or crust; often on sun-exposed areas.</p>
+                <p><strong>Risk Factors:</strong> Fair skin, older age, history of actinic keratosis, immunosuppression, or smoking.</p>
+                <p><strong>Prevention:</strong> Protect skin from UV rays, avoid tanning, monitor precancerous lesions, and quit smoking.</p>
+                <p><strong>Action:</strong> Urgent surgical excision, Mohs surgery for sensitive areas, radiation, or topical chemotherapy; early treatment improves outcomes.</p>
+            </div>
+            <div class="disease-card" data-tilt data-tilt-max="15" data-tilt-speed="400" data-tilt-perspective="1000">
+                <h3>Basal Cell Carcinoma</h3>
+                <p><strong>Description:</strong> The most common skin cancer, arising from basal cells, typically slow-growing but locally invasive.</p>
+                <p><strong>Causes:</strong> Chronic UV exposure, genetic predisposition, or rare conditions like Gorlin syndrome.</p>
+                <p><strong>Symptoms:</strong> Pearly or waxy bumps, flat scaly patches, or non-healing sores; may have visible blood vessels or black/blue areas.</p>
+                <p><strong>Risk Factors:</strong> Fair skin, prolonged sun exposure, age over 50, or prior radiation therapy.</p>
+                <p><strong>Prevention:</strong> Use sunscreen, wear protective clothing, avoid sunbathing, and perform regular skin checks.</p>
+                <p><strong>Action:</strong> Surgical removal (Mohs or excision), topical treatments (imiquimod), or radiation for non-surgical candidates.</p>
+            </div>
+            <div class="disease-card" data-tilt data-tilt-max="15" data-tilt-speed="400" data-tilt-perspective="1000">
+                <h3>Seborrheic Keratosis</h3>
+                <p><strong>Description:</strong> Benign, warty growths common in older adults, often mistaken for skin cancer due to appearance.</p>
+                <p><strong>Causes:</strong> Aging, genetic factors; not directly linked to sun exposure.</p>
+                <p><strong>Symptoms:</strong> Brown, black, or tan growths with a warty, waxy, or stuck-on look; may be scaly or greasy; sizes vary widely.</p>
+                <p><strong>Risk Factors:</strong> Age over 50, family history, or certain ethnic backgrounds.</p>
+                <p><strong>Prevention:</strong> No specific prevention; monitor for sudden changes or rapid growth.</p>
+                <p><strong>Action:</strong> Usually harmless; removal via cryotherapy, curettage, or laser for cosmetic reasons or if irritated.</p>
+            </div>
+            <div class="disease-card" data-tilt data-tilt-max="15" data-tilt-speed="400" data-tilt-perspective="1000">
+                <h3>Dermatofibroma</h3>
+                <p><strong>Description:</strong> Benign fibrous nodules, often triggered by minor skin trauma like insect bites or cuts.</p>
+                <p><strong>Causes:</strong> Localized skin injury or inflammation; exact cause unclear.</p>
+                <p><strong>Symptoms:</strong> Small, firm, brownish or reddish bumps; may dimple when pinched; often itchy or tender.</p>
+                <p><strong>Risk Factors:</strong> Women, middle age, history of skin trauma, or certain skin types.</p>
+                <p><strong>Prevention:</strong> Protect skin from injury, avoid scratching bites or cuts, and monitor for changes.</p>
+                <p><strong>Action:</strong> Monitor for growth or symptoms; surgical excision if painful, cosmetically bothersome, or suspicious.</p>
+            </div>
+            <div class="disease-card" data-tilt data-tilt-max="15" data-tilt-speed="400" data-tilt-perspective="1000">
+                <h3>Nevus</h3>
+                <p><strong>Description:</strong> Common benign moles formed by clusters of melanocytes, present at birth or developing over time.</p>
+                <p><strong>Causes:</strong> Genetic factors, sun exposure, or hormonal changes (e.g., puberty, pregnancy).</p>
+                <p><strong>Symptoms:</strong> Uniform, round, or oval spots; brown, black, or skin-toned; stable size and shape; may be flat or raised.</p>
+                <p><strong>Risk Factors:</strong> Fair skin, family history of moles, high sun exposure, or numerous moles (>50).</p>
+                <p><strong>Prevention:</strong> Use sunscreen, avoid excessive sun, and perform monthly skin self-exams using ABCDE criteria.</p>
+                <p><strong>Action:</strong> Monitor for changes; consult a dermatologist for biopsy or removal if mole becomes asymmetrical, irregular, or evolves.</p>
+            </div>
+            <div class="carousel-dots">
+                <span class="dot active" data-index="0"></span>
+                <span class="dot" data-index="1"></span>
+                <span class="dot" data-index="2"></span>
+                <span class="dot" data-index="3"></span>
+                <span class="dot" data-index="4"></span>
+                <span class="dot" data-index="5"></span>
+                <span class="dot" data-index="6"></span>
+                <span class="dot" data-index="7"></span>
+                <span class="dot" data-index="8"></span>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        © 2025 Skin Cancer Detection | Stay Healthy!
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Loader and page transition
+            const loader = document.getElementById('loader');
+            loader.classList.add('active');
+            setTimeout(() => {
+                loader.classList.remove('active');
+            }, 500);
+
+            document.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const href = link.getAttribute('href');
+                    document.body.classList.add('page-transition-exit');
+                    loader.classList.add('active');
+                    setTimeout(() => {
+                        window.location.href = href;
+                    }, 500);
+                });
+            });
+
+            // Carousel logic
+            const cards = document.querySelectorAll('.disease-card');
+            const arrowLeft = document.getElementById('arrow-left');
+            const arrowRight = document.getElementById('arrow-right');
+            const dots = document.querySelectorAll('.dot');
+            let currentIndex = 0;
+
+            function updateCarousel() {
+                cards.forEach((card, index) => {
+                    card.classList.remove('active', 'slide-left');
+                    if (index === currentIndex) {
+                        card.classList.add('active');
+                    } else if (index < currentIndex) {
+                        card.classList.add('slide-left');
+                    }
+                });
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === currentIndex);
+                });
+                arrowLeft.classList.toggle('disabled', currentIndex === 0);
+                arrowRight.classList.toggle('disabled', currentIndex === cards.length - 1);
+            }
+
+            arrowLeft.addEventListener('click', () => {
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    updateCarousel();
+                }
+            });
+
+            arrowRight.addEventListener('click', () => {
+                if (currentIndex < cards.length - 1) {
+                    currentIndex++;
+                    updateCarousel();
+                }
+            });
+
+            dots.forEach(dot => {
+                dot.addEventListener('click', () => {
+                    currentIndex = parseInt(dot.getAttribute('data-index'));
+                    updateCarousel();
+                });
+            });
+
+            updateCarousel();
+
+            // Initialize Tilt.js
+            VanillaTilt.init(document.querySelectorAll('.disease-card'), {
+                max: 15,
+                speed: 400,
+                perspective: 1000
+            });
+
+            // Page transition animation
+            document.body.style.transition = 'transform 0.5s ease';
+            document.body.classList.add('page-transition-enter');
+            setTimeout(() => {
+                document.body.classList.remove('page-transition-enter');
+            }, 500);
+        });
+    </script>
+    <style>
+        .page-transition-enter {
+            transform: scale(0.95);
+            opacity: 0;
+        }
+        .page-transition-exit {
+            transform: scale(1.05);
+            opacity: 0;
+        }
+        body {
+            transition: transform 0.5s ease, opacity 0.5s ease;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,90 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Skin Cancer Detection</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe, #f3e8ff);
+        }
+        .content {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 8px;
+            padding: 20px;
+            height:80px;
+            width: 500px;
+            margin: 20px auto;
+            animation: slideIn 1s ease-out;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transform: perspective(600px) translateZ(0);
+            transition: transform 0.3s ease;
+        }
+        .content:hover {
+            transform: perspective(600px) translateZ(10px);
+        }
+        button {
+            padding: 10px 20px;
+            background: #3b82f6;
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: scale(1.1);
+            background: #2563eb;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="page-transition">
+    <div class="loader" id="loader"></div>
+
+    <div class="content">
+        <h2>Login</h2>
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Login</button>
+        </form>
+        <p>Don't have an account? <a href="{% url 'signup' %}">Signup</a></p>
+    </div>
+
+    <footer class="footer">
+        © 2025 Skin Cancer Detection | Stay Healthy!
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loader = document.getElementById('loader');
+            loader.classList.add('active');
+            setTimeout(() => {
+                loader.classList.remove('active');
+            }, 500);
+
+            document.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const href = link.getAttribute('href');
+                    document.body.classList.add('page-transition-exit');
+                    loader.classList.add('active');
+                    setTimeout(() => {
+                        window.location.href = href;
+                    }, 500);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Check Disease - Skin Cancer Detection</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe, #f3e8ff);
+        }
+        .content {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 800px;
+            margin: 20px auto;
+            animation: slideIn 1s ease-out;
+        }
+        .image-preview {
+            margin: 20px auto;
+            max-width: 300px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease;
+            transform: perspective(1000px);
+        }
+        .image-preview:hover {
+            transform: perspective(1000px) rotateY(10deg) scale(1.05);
+        }
+        .error-message {
+            color: #ef4444;
+            font-weight: 700;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            animation: fadeIn 1s ease-in;
+        }
+        .disease-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px auto;
+            max-width: 500px;
+            text-align: left;
+        }
+        .disease-list li {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease;
+            color: #1f2937;
+            font-size: 16px;
+        }
+        .disease-list li:hover {
+            transform: translateY(-5px);
+        }
+        .pred {
+            color: #ec4899;
+            font-weight: 700;
+            animation: pulse 2s infinite;
+        }
+        .confidence {
+            color: #059669;
+            font-weight: 700;
+            font-style: italic;
+        }
+        h3, h4 {
+            color: #1f2937;
+            font-weight: 700;
+            margin: 15px 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="page-transition">
+    <div class="loader" id="loader"></div>
+
+    <nav class="navbar">
+        <div class="navbar-left">
+            <a href="{% url 'home' %}">Home</a>
+            <a href="{% url 'predict' %}">Check Disease</a>
+            <a href="{% url 'diseases_info' %}">Diseases Info</a>
+        </div>
+        <div class="navbar-right">
+            {% if user.is_authenticated %}
+                <form method="POST" action="{% url 'logout' %}" class="logout-form">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-link">Logout</button>
+                </form>
+            {% else %}
+                <a href="{% url 'signup' %}" class="nav-link">Signup</a>
+                <a href="{% url 'login' %}" class="nav-link">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="content">
+        <h2>Upload Your Skin Image</h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" name="image" accept="image/jpeg,image/jpg,image/png" required>
+            <button type="submit">Predict</button>
+        </form>
+
+        {% if image_url %}
+            <img src="{{ image_url }}" alt="Uploaded Image" class="image-preview">
+        {% endif %}
+
+        {% if prediction %}
+            <h3>Predicted Disease: <span class="pred">{{ prediction }}</span> 
+                {% if confidence %}
+                    <span class="confidence">(Confidence: {{ confidence|floatformat:2 }}%)</span>
+                {% endif %}
+            </h3>
+            {% if probabilities %}
+                <h4>Prediction Probabilities:</h4>
+                <ul class="disease-list">
+                    {% for disease, prob in probabilities.items %}
+                        <li>{{ disease }}: {{ prob }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endif %}
+        {% if error %}
+            <p class="error-message">{{ error }}</p>
+        {% endif %}
+    </div>
+
+    <footer class="footer">
+        © 2025 Skin Cancer Detection | Stay Healthy!
+    </footer>
+
+    <script>
+        document.body.style.transition = 'transform 0.5s ease';
+        document.body.classList.add('page-transition-enter');
+        setTimeout(() => {
+            document.body.classList.remove('page-transition-enter');
+        }, 500);
+        
+        document.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const href = link.getAttribute('href');
+                document.body.classList.add('page-transition-exit');
+                loader.classList.add('active');
+                setTimeout(() => {
+                    window.location.href = href;
+                }, 500);
+            });
+            });
+    </script>
+</body>
+</html>
